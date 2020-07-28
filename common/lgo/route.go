@@ -21,6 +21,7 @@ type Router struct {
 	Handler     []HandlerFunc
 	RequestType reflect.Type
 	IsLeaf      bool
+	method      []string
 }
 
 var EmptyRouter = Router{}
@@ -31,6 +32,7 @@ func NewRouter() *Router {
 		Handler:     []HandlerFunc{},
 		RequestType: nil,
 		IsLeaf:      true,
+		method:      []string{},
 	}
 }
 func (r *Router) AddRoute(path string) *Router {
@@ -55,6 +57,12 @@ func (r *Router) AddHandler(handlerFunc HandlerFunc) *Router {
 	r.Handler = append(r.Handler, handlerFunc)
 	return r
 }
+func (r *Router) Method(method ...string) *Router {
+	for i := range method {
+		r.method = append(r.method, method[i])
+	}
+	return r
+}
 func (r *Router) RegisterType(data interface{}) {
 	if r.IsLeaf {
 		r.RequestType = reflect.ValueOf(data).Type().Elem()
@@ -62,7 +70,7 @@ func (r *Router) RegisterType(data interface{}) {
 		logger.Error(fmt.Sprintf("current router is not a leaf node"))
 	}
 }
-func (r *Router) getRouter(path string) *Router {
+func (r *Router) getRouter(path, method string) *Router {
 	if !strings.HasPrefix(path, "/") {
 		logger.Error(fmt.Sprintf("path is error: %s", path))
 		return nil
@@ -77,15 +85,26 @@ func (r *Router) getRouter(path string) *Router {
 			return nil
 		}
 	}
-	if currentRouter.IsLeaf {
+	if currentRouter.IsLeaf && currentRouter.methodExist(method) {
 		return currentRouter
 	} else {
 		return nil
 	}
 }
+func (r *Router) methodExist(m string) bool {
+	if len(r.method) == 0 {
+		r.method = append(r.method, "ALL")
+	}
+	for i := range r.method {
+		if m == r.method[i] || r.method[i] == "ALL" {
+			return true
+		}
+	}
+	return false
+}
 func (r *Router) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	path := request.URL.Path
-	router := r.getRouter(path)
+	router := r.getRouter(path, request.Method)
 	context := NewContext(response, request)
 
 	if router == nil {
@@ -126,8 +145,13 @@ func isJsonType(r *http.Request) bool {
 }
 func (r *Router) PrintTree(path string) {
 	if r.IsLeaf {
-		logger.Info(fmt.Sprintf("%s\t%d handlers", path, len(r.Handler)))
-		return
+		if len(r.method) == 0 {
+			r.method = append(r.method, "ALL")
+		}
+		for i := range r.method {
+			logger.Info(fmt.Sprintf("%s %s\t%d handlers", r.method[i], path, len(r.Handler)))
+			return
+		}
 	}
 	for k := range r.Children {
 		r.Children[k].PrintTree(path + "/" + k)

@@ -14,7 +14,7 @@ type Log interface {
 	Fatal(s string)
 }
 
-var logger Log=LogUtil.StdLogger
+var logger Log = LogUtil.StdLogger
 
 func SetLog(log Log) {
 	logger = log

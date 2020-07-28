@@ -30,18 +30,24 @@ func NewLogger(prefix string) *Logger {
 	filename := prefix + "_" + today.Format("20060102") + ".log"
 	file, err := os.Create(filename)
 	if err != nil {
+		log.Println(err.Error())
+		return nil
 	}
 	l.logger = log.New(file, "", log.LstdFlags)
 	go func() {
 		today = today.Add(24 * time.Hour)
 		t := time.NewTimer(today.Sub(time.Now()))
+		defer func() {
+			t.Stop()
+			_ = file.Close()
+		}()
 		for range t.C {
 			func() {
 				filename = prefix + "_" + today.Format("20060102") + ".log"
 				l.rwLock.Lock()
-				_ = file.Close()
 				defer l.rwLock.Unlock()
-				file, err := os.Create(filename)
+				_ = file.Close()
+				file, err = os.Create(filename)
 				if err != nil {
 					return
 				}

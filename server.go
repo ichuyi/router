@@ -37,7 +37,7 @@ func main() {
 	l := LogUtil.NewLogger("server")
 	lgo.SetLog(l)
 	router := lgo.NewRouter()
-	router.AddRoute("/common/hello").AddHandler(hello).RegisterType(new(Response))
+	router.AddRoute("/common/hello").Method("GET", "POST").AddHandler(hello).RegisterType(new(Response))
 	router.AddRoute("/hhh/hi").AddHandler(hi).RegisterType(new(Response))
 	router.AddRoute("/hi/hhh").AddHandler(hhh).RegisterType(new(Response))
 	r := router.AddRoute("/common1")

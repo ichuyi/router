@@ -1,0 +1,6 @@
+server
+server_*
+go.mod
+go.sum
+.idea
+.DS_Store
